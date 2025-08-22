@@ -102,33 +102,212 @@ DataVision-App/
 - **`/api/sales`** - API de datos de ventas
 - **`/api/users`** - API de datos de usuarios
 
-## ☁️ Despliegue con AWS CodeDeploy
+## 🚀 Despliegue Automatizado con CI/CD
 
-### 1. Preparación de la Instancia EC2
+### 🔄 Configuración de CI/CD con AWS CodePipeline
+
+#### 1. **Configurar CodePipeline desde AWS Console:**
+
+1. **Crear Pipeline:**
+   - Ve a AWS CodePipeline → "Crear pipeline"
+   - Nombre: `datavision-pipeline`
+   - Rol de servicio: Crear nuevo rol
+
+2. **Configurar Fuente (GitHub):**
+   - Proveedor: GitHub (Version 2)
+   - Conectar a GitHub y autorizar AWS
+   - Repositorio: `calebmardi/TH-5`
+   - Rama: `main`
+   - Detección de cambios: Webhook de GitHub
+
+3. **Configurar Build (CodeBuild):**
+   - Proveedor: AWS CodeBuild
+   - Crear nuevo proyecto de compilación:
+     - Nombre: `datavision-build`
+     - Entorno: Ubuntu, Standard, aws/codebuild/standard:5.0
+     - Buildspec: Usar archivo buildspec.yml del repositorio
+
+4. **Configurar Deploy (CodeDeploy):**
+   - Proveedor: AWS CodeDeploy
+   - Aplicación: `datavision-app`
+   - Grupo de despliegue: `datavision-group`
+
+#### 2. **Configuración mediante AWS CLI:**
 
 ```bash
+# Crear el pipeline
+aws codepipeline create-pipeline --cli-input-json file://pipeline-config.json
+
+# Ejemplo de pipeline-config.json
+{
+  "pipeline": {
+    "name": "datavision-pipeline",
+    "roleArn": "arn:aws:iam::ACCOUNT:role/service-role/AWSCodePipelineServiceRole",
+    "artifactStore": {
+      "type": "S3",
+      "location": "codepipeline-artifacts-bucket"
+    },
+    "stages": [
+      {
+        "name": "Source",
+        "actions": [{
+          "name": "Source",
+          "actionTypeId": {
+            "category": "Source",
+            "owner": "ThirdParty",
+            "provider": "GitHub",
+            "version": "1"
+          },
+          "configuration": {
+            "Owner": "calebmardi",
+            "Repo": "TH-5",
+            "Branch": "main"
+          },
+          "outputArtifacts": [{"name": "SourceOutput"}]
+        }]
+      }
+    ]
+  }
+}
+```
+
+### 🏗️ Preparación del EC2 para CodeDeploy
+
+1. **Instalar Docker y Docker Compose:**
+```bash
 # Actualizar el sistema
-sudo yum update -y
+sudo apt update
 
 # Instalar Docker
-sudo yum install -y docker
+sudo apt install -y docker.io
 sudo systemctl start docker
 sudo systemctl enable docker
-sudo usermod -a -G docker ubuntu
+sudo usermod -aG docker ubuntu
 
 # Instalar Docker Compose
 sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
+# Verificar instalaciones
+docker --version
+docker-compose --version
+```
+
+2. **Instalar y configurar CodeDeploy Agent:**
+```bash
 # Instalar CodeDeploy Agent
+sudo apt update
+sudo apt install -y ruby wget
+cd /home/ubuntu
 wget https://aws-codedeploy-us-east-1.s3.us-east-1.amazonaws.com/latest/install
 chmod +x ./install
 sudo ./install auto
 
-# Verificar instalaciones
+# Verificar que esté ejecutándose
 sudo service codedeploy-agent status
-docker --version
-docker-compose --version
+```
+
+### 📬 Configuración de Notificaciones (Opcional)
+
+#### 1. **Crear tópico SNS para notificaciones:**
+```bash
+# Crear tópico SNS
+aws sns create-topic --name datavision-pipeline-notifications
+
+# Suscribirse al tópico (reemplazar con tu email)
+aws sns subscribe \
+  --topic-arn arn:aws:sns:us-east-1:ACCOUNT:datavision-pipeline-notifications \
+  --protocol email \
+  --notification-endpoint tu-email@ejemplo.com
+```
+
+#### 2. **Configurar reglas de EventBridge:**
+```bash
+# Crear regla para fallos de pipeline
+aws events put-rule \
+  --name datavision-pipeline-failed \
+  --event-pattern '{
+    "source": ["aws.codepipeline"],
+    "detail-type": ["CodePipeline Pipeline Execution State Change"],
+    "detail": {
+      "state": ["FAILED"]
+    }
+  }'
+
+# Agregar target SNS a la regla
+aws events put-targets \
+  --rule datavision-pipeline-failed \
+  --targets "Id"="1","Arn"="arn:aws:sns:us-east-1:ACCOUNT:datavision-pipeline-notifications"
+```
+
+### 🔐 Variables de Entorno y Secretos
+
+#### 1. **Configurar en AWS Systems Manager Parameter Store:**
+```bash
+# Crear parámetros seguros
+aws ssm put-parameter \
+  --name "/datavision/db/password" \
+  --value "tu-password-seguro" \
+  --type "SecureString"
+
+aws ssm put-parameter \
+  --name "/datavision/api/key" \
+  --value "tu-api-key" \
+  --type "SecureString"
+```
+
+#### 2. **Configurar en AWS Secrets Manager:**
+```bash
+# Crear secreto
+aws secretsmanager create-secret \
+  --name "prod/datavision/database" \
+  --description "Credenciales de base de datos para DataVision" \
+  --secret-string '{
+    "username": "admin",
+    "password": "tu-password-super-seguro",
+    "host": "tu-rds-endpoint.amazonaws.com",
+    "port": 5432
+  }'
+```
+
+### 🚀 Flujo de Despliegue Automatizado
+
+1. **Push a la rama `main`** → Activa el webhook de GitHub
+2. **CodePipeline detecta cambios** → Inicia el pipeline automáticamente
+3. **Etapa Source** → Descarga código desde GitHub
+4. **Etapa Build (CodeBuild)** → Ejecuta `buildspec.yml`:
+   - Instala dependencias con `npm install`
+   - Ejecuta pruebas con `npm test`
+   - Valida estructura del proyecto
+   - Genera artefactos para despliegue
+5. **Etapa Deploy (CodeDeploy)** → Ejecuta scripts en EC2:
+   - `install.sh` → Prepara el entorno
+   - `start_application.sh` → Inicia la aplicación con Docker
+   - `validate_service.sh` → Verifica que todo funcione
+
+### 🛡️ Mejores Prácticas de Seguridad
+
+- **Roles IAM mínimos:** Asigna solo los permisos necesarios
+- **Secretos seguros:** Usa Parameter Store o Secrets Manager
+- **Validaciones:** Implementa health checks y rollback automático
+- **Monitoreo:** Configura CloudWatch para logs y métricas
+- **Backup:** Mantén snapshots de la aplicación antes de desplegar
+
+### 🔧 Comandos Útiles para Debugging
+
+```bash
+# Ver estado del pipeline
+aws codepipeline get-pipeline-state --name datavision-pipeline
+
+# Ver logs de CodeBuild
+aws logs describe-log-groups --log-group-name-prefix /aws/codebuild/datavision
+
+# Ver despliegues de CodeDeploy
+aws deploy list-deployments --application-name datavision-app
+
+# Ver estado del CodeDeploy Agent en EC2
+sudo service codedeploy-agent status
+sudo tail -f /var/log/aws/codedeploy-agent/codedeploy-agent.log
 ```
 
 ### 2. Configurar el repositorio Git

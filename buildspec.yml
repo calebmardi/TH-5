@@ -1,0 +1,86 @@
+version: 0.2
+
+# AWS CodeBuild buildspec para DataVision App
+# Integración continua con GitHub + CodePipeline + CodeDeploy
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - echo "🚀 Iniciando fase de instalación..."
+      - echo "📦 Instalando dependencias de Node.js"
+      - npm install
+      - echo "🐳 Verificando Docker (si está disponible)"
+      - docker --version || echo "Docker no disponible en CodeBuild"
+      
+  pre_build:
+    commands:
+      - echo "🔍 Ejecutando validaciones pre-build..."
+      - echo "📋 Verificando estructura del proyecto"
+      - ls -la
+      - echo "✅ Verificando archivos críticos"
+      - test -f appspec.yml && echo "✓ appspec.yml encontrado" || (echo "❌ appspec.yml faltante" && exit 1)
+      - test -f app.js && echo "✓ app.js encontrado" || (echo "❌ app.js faltante" && exit 1)
+      - test -f package.json && echo "✓ package.json encontrado" || (echo "❌ package.json faltante" && exit 1)
+      - test -d scripts && echo "✓ directorio scripts encontrado" || (echo "❌ directorio scripts faltante" && exit 1)
+      - echo "🧪 Ejecutando pruebas (si existen)"
+      - npm test --if-present
+      
+  build:
+    commands:
+      - echo "🔨 Iniciando fase de construcción..."
+      - echo "📝 Ejecutando lint (si está configurado)"
+      - npm run lint --if-present || echo "Lint no configurado, continuando..."
+      - echo "🏗️ Ejecutando build del proyecto"
+      - npm run build --if-present || echo "Build script no encontrado, continuando..."
+      - echo "✅ Build completado exitosamente"
+      
+  post_build:
+    commands:
+      - echo "🎯 Ejecutando tareas post-build..."
+      - echo "📊 Generando reporte de dependencias"
+      - npm list --depth=0 || true
+      - echo "🔍 Verificando permisos de scripts"
+      - chmod +x scripts/*.sh
+      - echo "📋 Listando archivos finales"
+      - find . -type f -name "*.js" -o -name "*.json" -o -name "*.yml" -o -name "*.sh" | head -20
+      - echo "✅ Post-build completado"
+
+artifacts:
+  files:
+    - '**/*'
+  exclude-paths:
+    - node_modules/**/*
+    - .git/**/*
+    - .vscode/**/*
+    - .idea/**/*
+    - '*.log'
+    - '.env*'
+  name: datavision-app-$(date +%Y-%m-%d-%H-%M-%S)
+
+cache:
+  paths:
+    - 'node_modules/**/*'
+
+# Variables de entorno para el build
+env:
+  variables:
+    NODE_ENV: production
+    CI: true
+  # parameter-store:
+  #   - DB_PASSWORD: /datavision/db/password
+  # secrets-manager:
+  #   - API_KEY: prod/datavision/api-key
+
+# Reportes y métricas
+reports:
+  jest_reports:
+    files:
+      - 'coverage/lcov.info'
+    base-directory: 'coverage'
+    file-format: 'CLOVERXML'
+  # eslint_reports:
+  #   files:
+  #     - 'eslint-report.xml'
+  #   file-format: 'JUNITXML'

@@ -32,7 +32,7 @@ const sampleData = {
 // Rutas
 app.get('/', (req, res) => {
   res.render('index', { 
-    title: 'DataVision App',
+    title: 'DataVision Web',
     message: 'Bienvenido a la aplicación de visualización de datos'
   });
 });
