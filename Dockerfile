@@ -15,7 +15,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instalar dependencias de producción
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 # Etapa 2: Producción
 FROM node:18-alpine AS production
@@ -42,6 +42,8 @@ COPY --from=builder --chown=datavision:nodejs /app/node_modules ./node_modules
 # Copiar código fuente
 COPY --chown=datavision:nodejs package*.json ./
 COPY --chown=datavision:nodejs app.js ./
+COPY --chown=datavision:nodejs views/ ./views/
+COPY --chown=datavision:nodejs public/ ./public/
 
 # Crear directorio para logs
 RUN mkdir -p logs

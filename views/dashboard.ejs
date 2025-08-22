@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            color: #333;
+            margin-top: 0;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .sales-item, .user-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .sales-item:last-child, .user-item:last-child {
+            border-bottom: none;
+        }
+        .amount {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 30px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><%= title %></h1>
+        
+        <div class="dashboard-grid">
+            <div class="card">
+                <h2>📊 Datos de Ventas</h2>
+                <% salesData.forEach(function(sale) { %>
+                    <div class="sales-item">
+                        <span><%= sale.month %></span>
+                        <span class="amount">$<%= sale.amount.toLocaleString() %></span>
+                    </div>
+                <% }); %>
+            </div>
+            
+            <div class="card">
+                <h2>👥 Usuarios del Sistema</h2>
+                <% userData.forEach(function(user) { %>
+                    <div class="user-item">
+                        <div>
+                            <strong><%= user.name %></strong><br>
+                            <small><%= user.role %></small>
+                        </div>
+                        <span class="status <%= user.active ? 'active' : 'inactive' %>">
+                            <%= user.active ? 'Activo' : 'Inactivo' %>
+                        </span>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+        
+        <a href="/" class="back-link">← Volver al inicio</a>
+    </div>
+</body>
+</html>
