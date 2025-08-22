@@ -14,8 +14,8 @@ WORKDIR /app
 # Copiar archivos de dependencias
 COPY package*.json ./
 
-# Instalar dependencias (incluyendo devDependencies para build)
-RUN npm ci --only=production && npm cache clean --force
+# Instalar dependencias de producción
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Etapa 2: Producción
 FROM node:18-alpine AS production
