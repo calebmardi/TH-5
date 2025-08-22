@@ -1,20 +1,23 @@
-# DataVision App 📊
+# DataVision App - Dashboard de Análisis de Datos
 
-Aplicación de visualización de datos desarrollada con Node.js y Express, configurada para despliegue automatizado con AWS CodeDeploy.
+Una aplicación web moderna para visualización y análisis de datos de ventas y usuarios, containerizada con Docker y diseñada para despliegue automatizado con AWS CodeDeploy.
 
-## 🏗️ Estructura del Proyecto
+## 📁 Estructura del Proyecto
 
 ```
-datavision-app/
-├── app.js                 # Aplicación principal Express
-├── package.json          # Dependencias y scripts
+DataVision-App/
+├── app.js                 # Aplicación principal Node.js/Express
+├── package.json          # Dependencias y configuración del proyecto
+├── Dockerfile            # Configuración de contenedor Docker
+├── docker-compose.yml    # Orquestación de contenedores
+├── .dockerignore        # Archivos excluidos del contexto Docker
 ├── appspec.yml          # Configuración de AWS CodeDeploy
-├── scripts/             # Scripts de despliegue
-│   ├── install.sh       # Instalación de dependencias
-│   ├── start_application.sh    # Inicio de la aplicación
-│   ├── stop_application.sh     # Detención de la aplicación
-│   └── validate_service.sh     # Validación del servicio
-└── README.md           # Este archivo
+├── README.md            # Documentación del proyecto
+└── scripts/             # Scripts de despliegue Docker
+    ├── install.sh       # Instalación y construcción de imagen Docker
+    ├── start_application.sh   # Inicio del contenedor
+    ├── stop_application.sh    # Detención del contenedor
+    └── validate_service.sh    # Validación del servicio containerizado
 ```
 
 ## 🚀 Características
@@ -38,25 +41,55 @@ datavision-app/
 - Rol IAM con permisos de CodeDeploy
 - CodeDeploy Agent instalado en la instancia
 
-## 🛠️ Instalación Local
+## 🚀 Instalación Local
+
+### Prerrequisitos
+- Docker 20.10+
+- Docker Compose 2.0+
+- Git
+
+### Opción 1: Usando Docker Compose (Recomendado)
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone https://github.com/tuusuario/datavision-app.git
-   cd datavision-app
+   git clone <repository-url>
+   cd DataVision-App
    ```
 
-2. **Instalar dependencias:**
+2. **Construir y ejecutar con Docker Compose:**
+   ```bash
+   # Modo producción
+   docker-compose up -d datavision-app
+   
+   # Modo desarrollo (con hot reload)
+   docker-compose up -d datavision-dev
+   ```
+
+3. **Verificar funcionamiento:**
+   - Aplicación: http://localhost:3000
+   - Dashboard: http://localhost:3000/dashboard
+   - Health Check: http://localhost:3000/health
+
+### Opción 2: Usando Docker directamente
+
+1. **Construir la imagen:**
+   ```bash
+   docker build -t datavision-app .
+   ```
+
+2. **Ejecutar el contenedor:**
+   ```bash
+   docker run -d -p 3000:3000 --name datavision-app datavision-app
+   ```
+
+### Opción 3: Instalación tradicional con Node.js
+
+1. **Instalar dependencias:**
    ```bash
    npm install
    ```
 
-3. **Ejecutar en modo desarrollo:**
-   ```bash
-   npm run dev
-   ```
-
-4. **Ejecutar en modo producción:**
+2. **Iniciar la aplicación:**
    ```bash
    npm start
    ```
