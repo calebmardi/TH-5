@@ -83,7 +83,7 @@ fi
 
 echo "📁 Preparando directorios..."
 # Crear directorio de logs si no existe
-mkdir -p /home/ubuntu/app/logs
+sudo mkdir -p /home/ubuntu/app/logs
 
 # Asegurar permisos correctos
 sudo chown -R ubuntu:ubuntu /home/ubuntu/app
