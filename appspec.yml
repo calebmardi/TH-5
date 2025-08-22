@@ -18,7 +18,7 @@ hooks:
       on_failure: CONTINUE
   AfterInstall:
     - location: scripts/install.sh
-      timeout: 600
+      timeout: 900
       runas: ubuntu
       on_failure: STOP_DEPLOYMENT
   ApplicationStart:

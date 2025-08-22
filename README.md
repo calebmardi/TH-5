@@ -104,20 +104,31 @@ DataVision-App/
 
 ## ☁️ Despliegue con AWS CodeDeploy
 
-### 1. Preparar la instancia EC2
+### 1. Preparación de la Instancia EC2
 
 ```bash
-# Instalar Node.js
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
+# Actualizar el sistema
+sudo yum update -y
 
-# Instalar PM2 globalmente
-sudo npm install -g pm2
+# Instalar Docker
+sudo yum install -y docker
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -a -G docker ubuntu
+
+# Instalar Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
 
 # Instalar CodeDeploy Agent
 wget https://aws-codedeploy-us-east-1.s3.us-east-1.amazonaws.com/latest/install
 chmod +x ./install
 sudo ./install auto
+
+# Verificar instalaciones
+sudo service codedeploy-agent status
+docker --version
+docker-compose --version
 ```
 
 ### 2. Configurar el repositorio Git
@@ -165,19 +176,45 @@ El rol `CodeDeployRole` debe tener las siguientes políticas:
 
 ## 📊 Monitoreo y Logs
 
-### Ver logs de PM2:
+### Comandos útiles para monitoreo con Docker:
+
 ```bash
-pm2 logs app
+# Ver estado de contenedores
+docker-compose ps
+
+# Ver logs en tiempo real
+docker-compose logs -f datavision-app
+
+# Ver logs específicos (últimas 100 líneas)
+docker-compose logs --tail=100 datavision-app
+
+# Reiniciar el contenedor
+docker-compose restart datavision-app
+
+# Ver estadísticas de recursos
+docker stats datavision-app
+
+# Inspeccionar el contenedor
+docker inspect datavision-app
+
+# Acceder al contenedor (debugging)
+docker-compose exec datavision-app sh
+
+# Ver información de la imagen
+docker images datavision-app
 ```
 
-### Ver estado de procesos:
+### Comandos tradicionales (sin Docker):
+
 ```bash
+# Ver estado de la aplicación
 pm2 status
-```
 
-### Reiniciar aplicación:
-```bash
-pm2 restart app
+# Ver logs en tiempo real
+pm2 logs datavision-app
+
+# Reiniciar la aplicación
+pm2 restart datavision-app
 ```
 
 ### Ver logs de CodeDeploy:
@@ -206,6 +243,60 @@ curl http://localhost:3000/api/sales
 - `npm run lint` - Verificar código con ESLint
 - `npm run build` - Preparar para producción
 - `npm run deploy` - Preparar para despliegue
+
+## 🔧 Troubleshooting
+
+### Problemas comunes con Docker:
+
+1. **Error de permisos en appspec.yml:**
+   ```
+   Error: permissions setting for (/home/ubuntu/app/scripts/install.sh) is specified more than once
+   ```
+   **Solución:** Verificar que no haya configuraciones de permisos duplicadas en appspec.yml
+
+2. **Docker no está ejecutándose:**
+   ```bash
+   sudo systemctl start docker
+   sudo systemctl enable docker
+   ```
+
+3. **Puerto 3000 ocupado:**
+   ```bash
+   docker-compose down
+   sudo lsof -ti:3000 | xargs sudo kill -9
+   ```
+
+4. **Contenedor no se inicia:**
+   ```bash
+   # Ver logs detallados
+   docker-compose logs datavision-app
+   
+   # Reconstruir imagen
+   docker-compose build --no-cache datavision-app
+   ```
+
+5. **Problemas de permisos:**
+   ```bash
+   sudo chown -R ubuntu:ubuntu /home/ubuntu/app
+   sudo chmod +x /home/ubuntu/app/scripts/*.sh
+   ```
+
+6. **Limpiar recursos Docker:**
+   ```bash
+   # Limpiar contenedores parados
+   docker container prune -f
+   
+   # Limpiar imágenes no utilizadas
+   docker image prune -f
+   
+   # Limpiar todo (cuidado en producción)
+   docker system prune -af
+   ```
+
+7. **Logs de CodeDeploy:**
+   ```bash
+   sudo tail -f /var/log/aws/codedeploy-agent/codedeploy-agent.log
+   ```
 
 ## 📄 Licencia
 
